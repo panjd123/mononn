@@ -6,8 +6,6 @@ args = parser.parse_args()
 
 import tensorflow as tf
 import os
-from tensorflow.compat.v1.saved_model import tag_constants
-from tensorflow.compat.v1.saved_model import signature_constants
 from tensorflow.python.framework import convert_to_constants
 
 saved_model_loaded = tf.saved_model.load(args.model_dir)

@@ -1,13 +1,15 @@
 import argparse
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, required=True, help='Path to model directory.')
-parser.add_argument('--data_file', type=str, required=True, help='Numpy data file.')
+parser.add_argument('--data_file', type=str, required=False, help='Numpy data file.')
 parser.add_argument('--task', type=str, required=True, choices=['tuning', 'inference'], help='Run in tuning or inference mode.')
 parser.add_argument('--mononn_home', type=str, required=False, help='MonoNN home directory.')
 parser.add_argument('--mononn_dump_dir', type=str, default=None, help='Directory to save MonoNN tuning result. Required for tuning task.')
 parser.add_argument('--mononn_spec_dir', type=str, default=None, help='Directory to load MonoNN tuning result. Required for inference task.')
 parser.add_argument('--output_nodes',type=str, nargs='+', default=[])
-parser.add_argument('--batch_size', type=int, default=None)
+parser.add_argument('--batch_size', type=int, default=12)
+parser.add_argument('--seq_length', type=int, default=256)
 parser.add_argument('--mononn_disable', action='store_true', help='Disable MonoNN.')
 args = parser.parse_args()
 
@@ -60,13 +62,17 @@ def get_default_sess_config():
     return config
 
 def inference():
-    feed_dict = np.load(args.data_file, allow_pickle=True, encoding='bytes').item()
+    input_ids = np.full((args.batch_size, args.seq_length), 7592, dtype=np.int32)
+    input_ids[:, 0] = 101
+    input_ids[:, -1] = 102
+    feed_dict = {'input_ids:0': input_ids,
+                 'attention_mask:0': np.ones((args.batch_size, args.seq_length), dtype=np.int32),
+                'token_type_ids:0': np.zeros((args.batch_size, args.seq_length), dtype=np.int32)
+                 }
      
-    if args.batch_size != None:
-        for key in feed_dict.keys():
-            if feed_dict[key].shape[0] == 1:
-                feed_dict[key] = np.concatenate([feed_dict[key]] * args.batch_size, axis=0)
-            assert feed_dict[key].shape[0] == args.batch_size
+    if args.batch_size == None:
+        feed_dict = np.load(args.data_file, allow_pickle=True, encoding='bytes').item()
+        assert 'input_ids:0' in feed_dict, 'input_ids:0 not found in data file.'
     
     config = get_default_sess_config()
     graph_def = load_frozen_pb(os.path.join(args.model, 'frozen.pb'))
@@ -86,6 +92,8 @@ def inference():
     infer_num = 100
     print('Performing warm-up {} times'.format(warmup_num))
     _ = [do_inference() for i in range(warmup_num)]
+    t, ret = do_inference()
+    print('Inference result: {}'.format(ret))
 
 
     print('Performing inference {} times'.format(infer_num))

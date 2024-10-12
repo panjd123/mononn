@@ -7,7 +7,9 @@ parser.add_argument('--model', required=True, choices=[
     't5_base', 
     'bert_large',
     'clip',
-    'opt_125m'])
+    'opt_125m',
+    'bert_tiny_pesudo'
+    ])
 
 parser.add_argument('--pretrained_model', type=str, default=None)
 parser.add_argument('--model_dir', type=str, required=True)
@@ -21,6 +23,7 @@ import shutil
 from pathlib import Path
 import os
 import subprocess
+import numpy as np
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
@@ -40,6 +43,7 @@ from transformers import TFCLIPModel
 from transformers import TFOPTModel
 from transformers import TFOPTForCausalLM
 from transformers import TFT5ForConditionalGeneration
+
 batch_size = None if args.batch_size == -1 else args.batch_size
 seq_length = args.seq_length
 
@@ -110,16 +114,31 @@ def get_model():
     if args.model == 't5_base':
         return TFT5.from_pretrained('t5-base')
     if args.model == "bert_tiny_pesudo":
-        return TFBert.from_config(BertConfig(vocab_size=250368,
+        model = TFBert.from_config(BertConfig(vocab_size=250368,
                                              hidden_size=384,
                                              num_hidden_layers=6,
                                              num_attention_heads=12,
                                              intermediate_size=384*4,
                                              max_position_embeddings=256))
+        # input_ids = np.full((1, 256), 7592, dtype=np.int32)
+        # input_ids[:, 0] = 101
+        # input_ids[:, -1] = 102
+        # attention_mask = np.ones((1, 256), dtype=np.int32)
+        # token_type_ids = np.zeros((1, 256), dtype=np.int32)
+        # inputs = np.concatenate([input_ids, attention_mask, token_type_ids], axis=0)
+        # inputs = tf.convert_to_tensor(inputs)
+        # print(model.dummy_inputs)
+        output = model(model.dummy_inputs)
+        print(output)
+        return model
 
     assert False, f'Unsupported model {args.model}'
 
 model = get_model()
+
+weights = model.trainable_variables
+for weight in weights:
+    print(weight.name, weight.shape, weight.dtype)
 
 model.save_pretrained(args.model_dir, saved_model=True)
 

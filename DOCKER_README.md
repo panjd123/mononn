@@ -16,7 +16,12 @@ Create `dev_key/id_ed25519.pub` which is your own machine's public key.
 docker build -t mononn_image2 .
 ```
 
-It will build for a very very long time.
+It will build for a little bit long time.
+
+```bash
+screen -S mononn
+docker build -t mononn_image2 .
+```
 
 ```bash
 screen -S mononn

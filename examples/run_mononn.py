@@ -3,26 +3,39 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, required=True, help='Path to model directory.')
 parser.add_argument('--data_file', type=str, required=True, help='Numpy data file.')
 parser.add_argument('--task', type=str, required=True, choices=['tuning', 'inference'], help='Run in tuning or inference mode.')
-parser.add_argument('--mononn_home', type=str, required=True, help='MonoNN home directory.')
+parser.add_argument('--mononn_home', type=str, required=False, help='MonoNN home directory.')
 parser.add_argument('--mononn_dump_dir', type=str, default=None, help='Directory to save MonoNN tuning result. Required for tuning task.')
 parser.add_argument('--mononn_spec_dir', type=str, default=None, help='Directory to load MonoNN tuning result. Required for inference task.')
 parser.add_argument('--output_nodes',type=str, nargs='+', default=[])
 parser.add_argument('--batch_size', type=int, default=None)
+parser.add_argument('--mononn_disable', action='store_true', help='Disable MonoNN.')
 args = parser.parse_args()
 
 import os
 import numpy as np
 import time
-os.environ['TF_MONONN_ENABLED'] = 'true'
-os.environ['MONONN_HOME'] = args.mononn_home
+
+if not args.mononn_disable:
+    os.environ['TF_MONONN_ENABLED'] = 'true'
+    os.environ['MONONN_HOME'] = args.mononn_home
+else:
+    os.environ['TF_MONONN_ENABLED'] = 'false'
+    os.environ['MONONN_HOME'] = ''
+    
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit'
 
 if args.task == 'tuning':
-    assert args.mononn_dump_dir != None, 'Please specify mononn_dump_dir'
-    os.environ['TF_MONONN_DUMP_DIR'] = args.mononn_dump_dir
+    if args.mononn_disable:
+        os.environ['TF_MONONN_DUMP_DIR'] = ''
+    else:
+        assert args.mononn_dump_dir != None, 'Please specify mononn_dump_dir'
+        os.environ['TF_MONONN_DUMP_DIR'] = args.mononn_dump_dir
 if args.task == 'inference':
-    assert args.mononn_spec_dir != None, 'Please specify mononn_spec_dir'
-    os.environ['TF_MONONN_EXISTING_TUNING_SPEC_DIR'] = args.mononn_spec_dir
+    if args.mononn_disable:
+        os.environ['TF_MONONN_EXISTING_TUNING_SPEC_DIR'] = ''
+    else:    
+        assert args.mononn_spec_dir != None, 'Please specify mononn_spec_dir'
+        os.environ['TF_MONONN_EXISTING_TUNING_SPEC_DIR'] = args.mononn_spec_dir
 
 import tensorflow as tf
 

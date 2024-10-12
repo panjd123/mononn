@@ -9,6 +9,7 @@ parser.add_argument('--model', required=True, choices=[
     'clip',
     'opt_125m'])
 
+parser.add_argument('--pretrained_model', type=str, default=None)
 parser.add_argument('--model_dir', type=str, required=True)
 parser.add_argument('--batch_size', type=int, default=-1)
 parser.add_argument('--seq_length', type=int, default=128)
@@ -95,9 +96,9 @@ class TFT5(TFT5Model):
 
 def get_model():
     if args.model == 'bert_base':
-        return TFBert.from_pretrained("bert-base-uncased")
+        return TFBert.from_pretrained(args.pretrained_model)
     if args.model == 'bert_large':
-        return TFBert.from_pretrained("bert-large-uncased")
+        return TFBert.from_pretrained(args.pretrained_model)
     if args.model == 'vit':
         return TFVit.from_pretrained('google/vit-base-patch16-224')
     if args.model == 'clip':
@@ -108,6 +109,13 @@ def get_model():
         return TFT5.from_pretrained('t5-small')
     if args.model == 't5_base':
         return TFT5.from_pretrained('t5-base')
+    if args.model == "bert_tiny_pesudo":
+        return TFBert.from_config(BertConfig(vocab_size=250368,
+                                             hidden_size=384,
+                                             num_hidden_layers=6,
+                                             num_attention_heads=12,
+                                             intermediate_size=384*4,
+                                             max_position_embeddings=256))
 
     assert False, f'Unsupported model {args.model}'
 

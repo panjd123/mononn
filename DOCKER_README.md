@@ -18,6 +18,11 @@ docker build -t mononn_image2 .
 
 It will build for a very very long time.
 
+```bash
+screen -S mononn
+docker build -t mononn_image2 .
+```
+
 ## Run
 
 ```bash
